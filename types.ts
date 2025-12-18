@@ -40,10 +40,57 @@ export interface Scene {
   sceneImageUrl?: string; // Master concept art for the whole scene
 }
 
+// v1.5: Novos tipos para Resumos
+export interface Resumos {
+  logline: string;       // Uma frase que resume a essência do filme
+  sinopse: string;       // Resumo curto (1-2 parágrafos)
+  argumento: string;     // Resumo médio (1-2 páginas)
+  resumo: string;        // Resumo completo e detalhado
+}
+
+// v1.5: Tipos para Cenários
+export interface Cenario {
+  nome: string;
+  tipo: 'Interior' | 'Exterior' | 'Misto';
+  descricao: string;
+  ambientacao: string;
+  iluminacao_sugerida: string;
+  referencias_visuais?: string;
+  cenas_associadas: string[];
+}
+
+// v1.5: Tipos para Objetos de Cena
+export interface ObjetoCena {
+  nome: string;
+  categoria: 'Decoração' | 'Ação' | 'Figurino' | 'Veículo' | 'Alimento' | 'Documento' | 'Outros';
+  descricao: string;
+  quantidade: number;
+  cenas_associadas: string[];
+  importancia: 'Essencial' | 'Importante' | 'Decorativo';
+  notas?: string;
+}
+
+// v1.5: Tipos para Locações
+export interface Locacao {
+  nome: string;
+  tipo_espaco: 'Interior' | 'Exterior';
+  endereco_sugerido?: string;
+  caracteristicas: string;
+  necessidades_tecnicas?: string;
+  cenas_associadas: string[];
+  notas?: string;
+}
+
 export interface BreakdownResult {
   title: string;
   author: string;
   logline: string;
+  // v1.5: Novos campos
+  resumos?: Resumos;
+  cenarios?: Cenario[];
+  objetos_cena?: ObjetoCena[];
+  locacoes?: Locacao[];
+  // Campos existentes
   scenes: Scene[];
   total_scenes: number;
   characters_metadata: Character[]; // Detailed character info
