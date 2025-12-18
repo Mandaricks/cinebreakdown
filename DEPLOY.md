@@ -1,25 +1,30 @@
 # 🚀 Guia de Deploy - CineBreakdown no Vercel
 
-## ✅ Problemas Resolvidos
+## ✅ Arquitetura Atual (v1.3)
 
-### Correções Implementadas:
-1. ✅ **Removido o `importmap`** do `index.html` que causava conflitos
-2. ✅ **Corrigido HTML quebrado** no arquivo index
-3. ✅ **Build testado localmente** com sucesso (1.37MB bundle)
-4. ✅ **Configurações do Vite** otimizadas
+### Como Funciona a API Key:
+
+O CineBreakdown oferece **duas formas** de usar a API do Google Gemini:
+
+1. **🔐 API Key do Usuário (Recomendado)**: 
+   - O usuário insere sua própria API Key através do modal na interface
+   - A chave é enviada via header `X-API-Key` para a API serverless
+   - A chave é salva apenas no localStorage do navegador (privacidade)
+
+2. **🔧 API Key do Servidor (Opcional)**:
+   - Configure `GEMINI_API_KEY` nas variáveis de ambiente do Vercel
+   - Usada como fallback se o usuário não fornecer uma chave
+   - Útil para demos ou uso corporativo
 
 ---
 
 ## 📋 Pré-requisitos
 
 ### 1. Obter API Key do Google Gemini
-- Acesse: https://ai.google.dev/
+- Acesse: https://aistudio.google.com/app/apikey
 - Crie uma conta (ou faça login)
-- Vá em "Get API Key"
-- **IMPORTANTE**: Configure restrições de segurança na sua API Key:
-  - Limite por domínio (adicione seu domínio Vercel)
-  - Limite de requisições
-  - Ative apenas os modelos necessários (Gemini 1.5 Flash)
+- Clique em "Create API Key"
+- Copie a chave gerada
 
 ### 2. Conta no Vercel
 - Acesse: https://vercel.com
@@ -45,13 +50,6 @@ git commit -m "feat: Initial commit"
 
 # Se você já tem um repositório remoto:
 git push origin main
-
-# Se você ainda NÃO tem repositório remoto no GitHub:
-# 1. Vá ao GitHub e crie um novo repositório chamado "CineBreaker"
-# 2. Execute:
-git remote add origin https://github.com/SEU_USUARIO/CineBreaker.git
-git branch -M main
-git push -u origin main
 ```
 
 ### Passo 2: Conectar ao Vercel
@@ -69,22 +67,20 @@ git push -u origin main
    Install Command: npm install
    ```
 
-5. **NÃO clique em Deploy ainda!** Continue no próximo passo.
+### Passo 3: Variáveis de Ambiente (Opcional)
 
-### Passo 3: Adicionar Variáveis de Ambiente
-
-**ANTES** de fazer o deploy, adicione suas variáveis de ambiente:
+Se quiser configurar uma API Key padrão no servidor:
 
 1. Na página de configuração do projeto, vá em **"Environment Variables"**
-2. Adicione a seguinte variável:
+2. Adicione:
    
    ```
-   Name: VITE_GEMINI_API_KEY
+   Name: GEMINI_API_KEY
    Value: [COLE SUA API KEY DO GEMINI AQUI]
-   Environment: Production, Preview, Development (selecione todos)
+   Environment: Production, Preview, Development
    ```
 
-3. Clique em **"Add"**
+**Nota**: Isso é opcional! Os usuários podem fornecer sua própria API Key na interface.
 
 ### Passo 4: Deploy!
 
@@ -94,137 +90,88 @@ git push -u origin main
 
 ---
 
-## 🔄 Deploy Direto (Sem GitHub)
+## 🧪 Testar Localmente
 
-Se preferir deploy direto via Vercel CLI:
-
-### Instalar Vercel CLI
-```bash
-npm install -g vercel
-```
-
-### Deploy
 ```bash
 cd /home/heinz/Apps/CineBreaker
 
-# Login (abrirá o navegador)
-vercel login
+# 1. Instalar dependências
+npm install
 
-# Primeiro deploy (configuração interativa)
-vercel
-
-# Seguir prompts:
-# - Set up and deploy? [Y/n] Y
-# - Which scope? [selecione sua conta]
-# - Link to existing project? [N]
-# - What's your project's name? cinebreakdown
-# - In which directory is your code located? ./
-# - Want to override settings? [n]
-
-# Deploy para produção
-vercel --prod
-```
-
-### Adicionar Variáveis de Ambiente via CLI
-```bash
-vercel env add VITE_GEMINI_API_KEY
-# Cole sua API Key quando solicitado
-# Selecione: Production, Preview, Development
-```
-
----
-
-## 🧪 Testar Localmente Antes do Deploy
-
-```bash
-# 1. Criar arquivo de ambiente local
-cp .env.local.example .env.local
-
-# 2. Editar .env.local e adicionar sua API Key
-nano .env.local
-# ou
-code .env.local
-
-# 3. Adicionar:
-VITE_GEMINI_API_KEY=sua_chave_aqui
-
-# 4. Rodar em desenvolvimento
+# 2. Rodar em desenvolvimento
 npm run dev
 
 # Acesse: http://localhost:5173
 
-# 5. Testar build de produção
-npm run build
-npm run preview
-
-# Acesse: http://localhost:4173
+# 3. Na interface, insira sua API Key do Google Gemini
+# 4. Cole um texto de roteiro e clique em "Iniciar Análise"
 ```
+
+---
+
+## 🔧 Estrutura da API Serverless
+
+O projeto usa uma função serverless em `/api/gemini.ts` que:
+
+- Aceita a API Key via header `X-API-Key` (do frontend)
+- Usa `process.env.GEMINI_API_KEY` como fallback
+- Processa 4 tipos de ações:
+  - `analyzeStructure`: Análise inicial do roteiro
+  - `generateSceneShots`: Geração de shot list por cena
+  - `updateShotsWithNewCharacters`: Atualização de prompts visuais
+  - `generateImage`: Geração de storyboards
 
 ---
 
 ## 🔧 Troubleshooting
 
-### Erro: "Cannot find module" no Vercel
+### Erro: "API Key não configurada"
 
-**Solução**: Limpe o cache do Vercel
-```bash
-vercel --force
-```
+**Solução**: 
+- Insira uma API Key válida no modal da interface
+- Ou configure `GEMINI_API_KEY` nas variáveis de ambiente do Vercel
 
-Ou no Dashboard:
-1. Settings > General
-2. Clique em "Clear Cache"
-3. Redeploy
+### Erro: "API error: 400" ou "API error: 403"
 
-### Erro: "Failed to load module script"
-
-**Causa**: Restos do importmap antigo no cache do navegador
-
-**Solução**:
-1. Limpe o cache do navegador (Ctrl+Shift+R)
-2. Teste em aba anônima
-3. Se persistir, redeploye no Vercel
-
-### Erro: "API Key inválida" ou "403 Forbidden"
+**Causas possíveis**:
+1. API Key inválida ou expirada
+2. API Key sem permissões para o modelo Gemini
+3. Cota de requisições excedida
 
 **Soluções**:
-1. Verifique se a variável está correta: `VITE_GEMINI_API_KEY` (com prefixo VITE_)
-2. Confirme que a API Key está ativa no Google AI Studio
-3. Verifique as restrições da API Key (domínio, quotas)
-4. Certifique-se de ter selecionado todos os ambientes (Production, Preview, Development)
+1. Gere uma nova API Key em https://aistudio.google.com/app/apikey
+2. Verifique se a API Key tem acesso aos modelos Gemini 1.5 Flash
 
-### Build muito grande (>1.5MB)
+### Erro: "Failed to load resource: 404"
 
-Isso é **NORMAL** para este projeto. O bundle inclui:
-- React + React DOM (~150KB)
-- Recharts (gráficos) (~200KB)
-- jsPDF + autoTable (~150KB)
-- html2canvas (~200KB)
-- Google Gemini SDK (~150KB)
-- Lodash + Core-js (~400KB)
+**Causa**: A rota `/api/gemini` não está sendo resolvida corretamente
 
-**Otimizações já aplicadas:**
-- Code splitting automático pelo Vite
-- Tree shaking
-- Minificação
+**Solução**: Verifique se o `vercel.json` está correto:
+```json
+{
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}
+```
+
+### Build local funciona, mas no Vercel não
+
+**Solução**: Limpe o cache do Vercel
+- Dashboard > Settings > General > Clear Cache
+- Ou via CLI: `vercel --force`
 
 ---
 
-## 📊 Monitoramento Pós-Deploy
+## 📊 Arquivos Modificados para Deploy
 
-### Verificar Status
-```bash
-vercel ls
-```
-
-### Ver Logs
-```bash
-vercel logs [url-do-deploy]
-```
-
-### Analytics
-- Acesse o Dashboard > seu projeto > Analytics
-- Monitore uso de banda, requests, erros
+| Arquivo | Mudança |
+|---------|---------|
+| `vercel.json` | Configurado rewrites para API serverless |
+| `api/gemini.ts` | Aceita API Key via header + CORS |
+| `services/geminiService.ts` | Detecta ambiente e usa API serverless em produção |
+| `package.json` | Adicionado @types/node, @vercel/node |
 
 ---
 
@@ -233,56 +180,20 @@ vercel logs [url-do-deploy]
 Após o deploy inicial, qualquer novo `git push` no branch `main` irá:
 1. Triggerar build automático no Vercel
 2. Deploy automático se o build passar
-3. URL permanece a mesma
-
-### Deploy Manual de uma Branch Específica
-```bash
-git checkout feature/nova-funcionalidade
-vercel
-```
-
----
-
-## 🎨 Domínio Customizado (Opcional)
-
-1. Vá em: Settings > Domains
-2. Adicione seu domínio (ex: `cinebreakdown.com`)
-3. Configure DNS conforme instruções
-4. Vercel configura HTTPS automaticamente
 
 ---
 
 ## ✅ Checklist Final
 
-Antes de considerar o deploy completo:
-
-- [ ] Build local passa sem erros (`npm run build`)
-- [ ] App funciona em modo preview (`npm run preview`)
-- [ ] API Key do Gemini está ativa
-- [ ] Variáveis de ambiente configuradas no Vercel
+- [ ] Repositório no GitHub está atualizado
+- [ ] Projeto importado no Vercel
 - [ ] Deploy executado com sucesso
 - [ ] App acessível via URL do Vercel
-- [ ] Teste de upload de roteiro funciona
-- [ ] Geração de imagens funciona
-- [ ] Export PDF/ZIP funciona
+- [ ] Teste com API Key válida funciona
+- [ ] Análise de roteiro gera resultados
 
 ---
 
-## 📞 Suporte
-
-Se continuar com problemas:
-
-1. **Vercel Logs**: 
-   - Dashboard > seu projeto > Deployments > (clique no deploy) > View Function Logs
-
-2. **Console do Navegador**:
-   - F12 > Console (procure erros em vermelho)
-
-3. **Build Logs**:
-   - Dashboard > seu projeto > Deployments > (clique no deploy) > Building
-
----
-
-**Última atualização**: 17/12/2025
-**Versão do App**: v1.2 Fixed
+**Última atualização**: 18/12/2025
+**Versão do App**: v1.3
 **Status**: ✅ Pronto para produção
