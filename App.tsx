@@ -6,10 +6,12 @@ import { Dashboard } from './components/Dashboard';
 import { ReportsPanel } from './components/ReportsPanel';
 import { analyzeStructure, generateSceneShots, updateShotsWithNewCharacters, InputFile } from './services/geminiService';
 import { generateProductionBible, generateAssetsZip } from './services/exportService';
-import { AppStatus, BreakdownResult, Scene, Character, Resumos } from './types';
+import { AppStatus, BreakdownResult, Scene, Character, Resumos, Cenario, Figurino } from './types';
 import { ResumosPanel } from './components/ResumosPanel';
 import { LocacoesPanel } from './components/LocacoesPanel';
 import { ObjetosPanel } from './components/ObjetosPanel';
+import { CenariosPanel } from './components/CenariosPanel';
+import { FigurinosPanel } from './components/FigurinosPanel';
 
 // Icons Components
 const UploadIcon = () => (
@@ -54,8 +56,10 @@ const ReportsIcon = () => <svg className="w-5 h-5" fill="none" stroke="currentCo
 const ResumosIcon = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>;
 const LocacoesIcon = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
 const ObjetosIcon = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>;
+const CenariosIcon = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>;
+const FigurinosIcon = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>;
 
-type ViewSection = 'DASHBOARD' | 'RESUMOS' | 'SCENES' | 'CHARACTERS' | 'LOCACOES' | 'OBJETOS' | 'REPORTS';
+type ViewSection = 'DASHBOARD' | 'RESUMOS' | 'SCENES' | 'CHARACTERS' | 'CENARIOS' | 'FIGURINOS' | 'LOCACOES' | 'OBJETOS' | 'REPORTS';
 
 interface SavedProject {
   id: string;
@@ -489,7 +493,9 @@ const App: React.FC = () => {
              <SidebarItem id="DASHBOARD" label="Visão Geral" icon={DashboardIcon} />
              <SidebarItem id="RESUMOS" label="Resumos" icon={ResumosIcon} />
              <SidebarItem id="SCENES" label="Roteiro & Decupagem" icon={ScenesIcon} />
-             <SidebarItem id="CHARACTERS" label="Personagens & Arte" icon={CharactersIcon} />
+             <SidebarItem id="CHARACTERS" label="Personagens" icon={CharactersIcon} />
+             <SidebarItem id="FIGURINOS" label="Figurinos" icon={FigurinosIcon} />
+             <SidebarItem id="CENARIOS" label="Cenários" icon={CenariosIcon} />
              <SidebarItem id="LOCACOES" label="Locações" icon={LocacoesIcon} />
              <SidebarItem id="OBJETOS" label="Objetos de Cena" icon={ObjetosIcon} />
              <SidebarItem id="REPORTS" label="Relatórios" icon={ReportsIcon} />
@@ -636,6 +642,23 @@ const App: React.FC = () => {
             {activeSection === 'OBJETOS' && result && (
                <ObjetosPanel 
                  scenes={result.scenes}
+               />
+            )}
+
+            {activeSection === 'CENARIOS' && result && (
+               <CenariosPanel 
+                 cenarios={result.cenarios}
+                 scenes={result.scenes}
+                 uniqueLocations={result.unique_locations}
+                 onUpdateCenarios={(cenarios: Cenario[]) => setResult({ ...result, cenarios })}
+               />
+            )}
+
+            {activeSection === 'FIGURINOS' && result && (
+               <FigurinosPanel 
+                 figurinos={result.figurinos}
+                 characters={result.characters_metadata}
+                 onUpdateFigurinos={(figurinos: Figurino[]) => setResult({ ...result, figurinos })}
                />
             )}
 
