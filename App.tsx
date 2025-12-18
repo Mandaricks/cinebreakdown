@@ -336,7 +336,7 @@ const App: React.FC = () => {
                 <div className="h-8 w-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/30">CB</div>
                 <h1 className="font-bold text-lg tracking-tight text-white flex items-center gap-2">
                   CineBreakdown 
-                  <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">v1.2 Fixed</span>
+                  <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">v1.5-dev</span>
                 </h1>
              </div>
              <button onClick={() => setShowApiKeyModal(true)} className="text-xs text-slate-400 hover:text-white">Alterar API Key</button>
@@ -468,7 +468,7 @@ const App: React.FC = () => {
          <div className="h-16 flex items-center px-6 border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
              <div className="h-8 w-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-white mr-3 shadow-md shadow-indigo-500/20">CB</div>
              <span className="font-bold text-white tracking-tight text-lg">CineBreakdown</span>
-             <span className="ml-2 text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">v1.2 Fixed</span>
+             <span className="ml-2 text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">v1.5-dev</span>
          </div>
 
          <div className="p-4 border-b border-slate-800/50 bg-slate-800/20">
