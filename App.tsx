@@ -5,6 +5,7 @@ import { CharacterBoard } from './components/CharacterBoard';
 import { Dashboard } from './components/Dashboard';
 import { ReportsPanel } from './components/ReportsPanel';
 import { analyzeStructure, generateSceneShots, updateShotsWithNewCharacters, InputFile } from './services/geminiService';
+import { analyzeStructureFree, generateShotsFree, AIProvider } from './services/freeAIService';
 import { generateProductionBible, generateAssetsZip } from './services/exportService';
 import { AppStatus, BreakdownResult, Scene, Character, Resumos, Cenario, Figurino } from './types';
 import { ResumosPanel } from './components/ResumosPanel';
@@ -70,6 +71,7 @@ interface SavedProject {
 
 const App: React.FC = () => {
   const [apiKey, setApiKey] = useState<string | null>(null);
+  const [aiProvider, setAiProvider] = useState<AIProvider>('groq');
   const [inputText, setInputText] = useState(''); 
   const [uploadedFile, setUploadedFile] = useState<InputFile | null>(null); 
   const [fileName, setFileName] = useState('');
@@ -329,8 +331,9 @@ const App: React.FC = () => {
     }
   };
   
-  const handleApiKeySave = (key: string) => {
+  const handleApiKeySave = (key: string, provider: AIProvider) => {
     setApiKey(key);
+    setAiProvider(provider);
     setShowApiKeyModal(false);
   };
 
