@@ -1,7 +1,20 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { BreakdownResult, Shot, Character, Scene } from "../types";
 
-// 1. Structure Schema (Lightweight)
+export interface InputFile {
+  data: string; // Text content OR Base64 string
+  mimeType: string; // 'text/plain' or 'application/pdf'
+}
+
+export type ImageStyle = 'BW_SKETCH' | 'COLOR_STORYBOARD' | 'REALISTIC';
+
+// Detecta se está em produção (Vercel) ou desenvolvimento local
+const isProduction = () => {
+  if (typeof window === 'undefined') return false;
+  return window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+};
+
+// Schemas para respostas estruturadas
 const structureSchema: Schema = {
   type: Type.OBJECT,
   properties: {
@@ -16,8 +29,8 @@ const structureSchema: Schema = {
         properties: {
           name: { type: Type.STRING },
           role: { type: Type.STRING, enum: ['Protagonista', 'Elenco de Apoio', 'Figuração'] },
-          costume_suggestion: { type: Type.STRING, description: "Descrição detalhada do figurino, aparência física e acessórios em PT-BR." },
-          color_palette_hex: { type: Type.STRING, description: "Código Hex." },
+          costume_suggestion: { type: Type.STRING },
+          color_palette_hex: { type: Type.STRING },
         },
         required: ["name", "role", "costume_suggestion", "color_palette_hex"]
       }
@@ -33,8 +46,8 @@ const structureSchema: Schema = {
           location: { type: Type.STRING },
           time: { type: Type.STRING },
           characters: { type: Type.ARRAY, items: { type: Type.STRING } },
-          props: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Lista de objetos de cena (explícitos e implícitos)." },
-          summary: { type: Type.STRING, description: "Resumo em PT-BR." },
+          props: { type: Type.ARRAY, items: { type: Type.STRING } },
+          summary: { type: Type.STRING },
           estimated_duration_mins: { type: Type.NUMBER },
         },
         required: ["scene_number", "header", "location", "time", "characters", "summary", "props"]
@@ -44,7 +57,6 @@ const structureSchema: Schema = {
   required: ["scenes", "characters_metadata", "unique_locations"]
 };
 
-// 2. Shots Schema (Detailed)
 const shotsSchema: Schema = {
   type: Type.OBJECT,
   properties: {
@@ -69,7 +81,6 @@ const shotsSchema: Schema = {
   required: ["shots"]
 };
 
-// 3. Update Prompts Schema (Only visual_prompt)
 const updatePromptsSchema: Schema = {
   type: Type.OBJECT,
   properties: {
@@ -88,37 +99,51 @@ const updatePromptsSchema: Schema = {
   required: ["updated_prompts"]
 };
 
-export interface InputFile {
-  data: string; // Text content OR Base64 string
-  mimeType: string; // 'text/plain' or 'application/pdf'
-}
+// Função auxiliar para fazer requisições à API serverless (produção)
+const callServerlessApi = async (action: string, payload: any, apiKey: string) => {
+  const response = await fetch('/api/gemini', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': apiKey,
+    },
+    body: JSON.stringify({ action, payload }),
+  });
 
-export type ImageStyle = 'BW_SKETCH' | 'COLOR_STORYBOARD' | 'REALISTIC';
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(errorData.error || `API error: ${response.status}`);
+  }
+
+  return response.json();
+};
 
 // STAGE 1: Fast Structure Analysis
 export const analyzeStructure = async (input: InputFile, apiKey: string): Promise<BreakdownResult> => {
   if (!apiKey) throw new Error("API Key is required");
 
+  // Em produção, usa a API serverless; em desenvolvimento, chama diretamente
+  if (isProduction()) {
+    return callServerlessApi('analyzeStructure', { input }, apiKey);
+  }
+
+  // Desenvolvimento local - chamada direta
   const ai = new GoogleGenAI({ apiKey });
+  
   const systemPrompt = `
     Atue como um experiente 1º Assistente de Direção (AD) e Diretor de Arte Brasileiro.
-    
     TAREFA: Analisar o roteiro para estruturar a produção.
     IDIOMA DE SAÍDA: **PORTUGUÊS (PT-BR)**.
-    
     CLASSIFICAÇÃO DE ELENCO (Use estritamente estes termos):
     - **Protagonista**: Personagens principais.
     - **Elenco de Apoio**: Personagens com falas ou relevância, mas secundários.
     - **Figuração**: Personagens de fundo, sem nome próprio ou falas relevantes.
-
     INSTRUÇÕES CRITICAS DE INFERÊNCIA:
     1. **Objetos de Cena (Props):** Não liste apenas o que está escrito. Deduza objetos lógicos pelo contexto.
        - Ex: Se é uma "Igreja/Casamento", inclua: "Bíblia, Velas, Cálice, Flores de Altar".
-    
     2. **Figurino & Aparência:**
        - Descreva o figurino completo E características físicas marcantes.
        - Ex: "Padre idoso, barba branca, batina cerimonial preta com dourado, Estola bordada".
-    
     Se o input for PDF, extraia as cenas mesmo com formatação quebrada.
   `;
 
@@ -146,7 +171,6 @@ export const analyzeStructure = async (input: InputFile, apiKey: string): Promis
   if (!text) throw new Error("No response from Gemini");
   
   const result = JSON.parse(text) as BreakdownResult;
-  // Initialize empty shots for UI
   result.scenes = result.scenes.map(s => ({ ...s, shots: [] }));
   return result;
 };
@@ -159,9 +183,19 @@ export const generateSceneShots = async (
   globalCharacters: Character[],
   apiKey: string
 ): Promise<Shot[]> => {
+  
+  if (isProduction()) {
+    return callServerlessApi('generateSceneShots', {
+      sceneNumber,
+      fullInput,
+      sceneContext,
+      globalCharacters,
+    }, apiKey);
+  }
+
+  // Desenvolvimento local - chamada direta
   const ai = new GoogleGenAI({ apiKey });
 
-  // Filter only characters present in this scene to reduce token usage and noise
   const sceneCharacterDetails = globalCharacters
     .filter(c => sceneContext.characters.includes(c.name) || sceneContext.characters.some((sc: string) => sc.includes(c.name)))
     .map(c => `${c.name} (${c.actor_name || 'Ator não definido'}): ${c.costume_suggestion}`)
@@ -170,20 +204,16 @@ export const generateSceneShots = async (
   const systemPrompt = `
     Atue como um Diretor de Fotografia (DoP).
     TAREFA: Criar a DECUPAGEM (Shot List) para a CENA ${sceneNumber}.
-    
     IDIOMA:
     - description, subject: PORTUGUÊS (PT-BR).
     - visual_prompt: INGLÊS.
-    
     CONTEXTO DA CENA:
     Header: ${sceneContext.header}
     Resumo: ${sceneContext.summary}
     Objetos: ${sceneContext.props.join(', ')}
-    
     **CONSISTÊNCIA VISUAL DE PERSONAGENS (CRÍTICO):**
     Use estas descrições exatas para gerar o 'visual_prompt':
     ${sceneCharacterDetails}
-    
     INSTRUÇÕES:
     1. No 'visual_prompt', SEMPRE descreva o personagem baseado na lista acima (roupas, aparência) para manter consistência entre planos.
     2. Se houver objetos (props) importantes, inclua-os no prompt visual.
@@ -224,21 +254,41 @@ export const updateShotsWithNewCharacters = async (
 ): Promise<Shot[]> => {
   if (!scene.shots || scene.shots.length === 0) return [];
 
+  if (isProduction()) {
+    const result = await callServerlessApi('updateShotsWithNewCharacters', {
+      scene,
+      globalCharacters,
+    }, apiKey);
+    
+    if (Array.isArray(result)) return result;
+    
+    if (result.updated_prompts) {
+      const updatesMap = new Map<number, string>();
+      result.updated_prompts.forEach((p: any) => updatesMap.set(p.shot_number, p.visual_prompt));
+      return scene.shots.map(shot => {
+        if (updatesMap.has(shot.shot_number)) {
+          return { ...shot, visual_prompt: updatesMap.get(shot.shot_number)!, imageUrl: undefined };
+        }
+        return shot;
+      });
+    }
+    return scene.shots;
+  }
+
+  // Desenvolvimento local - chamada direta
   const ai = new GoogleGenAI({ apiKey });
 
   const sceneCharacterDetails = globalCharacters
-  .filter(c => scene.characters.includes(c.name) || scene.characters.some((sc: string) => sc.includes(c.name)))
-  .map(c => `${c.name}: ${c.costume_suggestion}`)
-  .join('\n');
+    .filter(c => scene.characters.includes(c.name) || scene.characters.some((sc: string) => sc.includes(c.name)))
+    .map(c => `${c.name}: ${c.costume_suggestion}`)
+    .join('\n');
 
   const shotsContext = scene.shots.map(s => `Shot ${s.shot_number}: [Action: ${s.description}] [Current Prompt: ${s.visual_prompt}]`).join('\n');
 
   const systemPrompt = `
     TASK: Rewrite the 'visual_prompt' (English) for the provided shots to MATCH the UPDATED character descriptions exactly.
-    
     UPDATED CHARACTER DESCRIPTIONS (Apply these strictly):
     ${sceneCharacterDetails}
-
     INSTRUCTIONS:
     1. Keep the original camera angle, shot size, and action/subject described in the shot.
     2. ONLY update the physical appearance and clothing of the characters in the 'visual_prompt' to match the "UPDATED CHARACTER DESCRIPTIONS".
@@ -266,14 +316,9 @@ export const updateShotsWithNewCharacters = async (
     const updatesMap = new Map<number, string>();
     result.updated_prompts.forEach((p: any) => updatesMap.set(p.shot_number, p.visual_prompt));
 
-    // Merge updates into existing shots
     return scene.shots.map(shot => {
       if (updatesMap.has(shot.shot_number)) {
-        return { 
-          ...shot, 
-          visual_prompt: updatesMap.get(shot.shot_number)!,
-          imageUrl: undefined // Invalidate old image since prompt changed
-        };
+        return { ...shot, visual_prompt: updatesMap.get(shot.shot_number)!, imageUrl: undefined };
       }
       return shot;
     });
@@ -289,6 +334,14 @@ export const generateImage = async (
   style: ImageStyle, 
   apiKey: string
 ): Promise<string> => {
+  
+  if (isProduction()) {
+    const result = await callServerlessApi('generateImage', { prompt, style }, apiKey);
+    if (result.image) return result.image;
+    throw new Error("Could not generate image");
+  }
+
+  // Desenvolvimento local - chamada direta
   const ai = new GoogleGenAI({ apiKey });
   
   let stylePrefix = "";
@@ -304,21 +357,23 @@ export const generateImage = async (
       break;
   }
 
-  // Ensure prompt doesn't violate safety, though API handles this.
   const finalPrompt = stylePrefix + prompt;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-1.5-flash-image', 
+    model: 'gemini-2.0-flash-preview-image-generation',
     contents: {
       parts: [{ text: finalPrompt }]
+    },
+    config: {
+      responseModalities: ["image", "text"],
     }
   });
 
   let base64Image = "";
-  if (response.candidates && response.candidates[0].content && response.candidates[0].content.parts) {
+  if (response.candidates && response.candidates[0]?.content?.parts) {
     for (const part of response.candidates[0].content.parts) {
       if (part.inlineData) {
-        base64Image = part.inlineData.data;
+        base64Image = part.inlineData.data || "";
         break;
       }
     }
@@ -328,5 +383,5 @@ export const generateImage = async (
     throw new Error("Could not generate image");
   }
 
-  return `data:image/jpeg;base64,${base64Image}`;
+  return `data:image/png;base64,${base64Image}`;
 };
