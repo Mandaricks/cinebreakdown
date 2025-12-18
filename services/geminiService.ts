@@ -160,7 +160,7 @@ export const analyzeStructure = async (input: InputFile, apiKey: string): Promis
   }
 
   const response = await ai.models.generateContent({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.0-flash',
     contents: [
       { role: 'user', parts: [{ text: systemPrompt }] },
       { role: 'user', parts: [userContentPart] }
@@ -232,7 +232,7 @@ export const generateSceneShots = async (
   }
 
   const response = await ai.models.generateContent({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.0-flash',
     contents: [
       { role: 'user', parts: [{ text: systemPrompt }] },
       { role: 'user', parts: [userContentPart] }
@@ -301,7 +301,7 @@ export const updateShotsWithNewCharacters = async (
   `;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.0-flash',
     contents: [
       { role: 'user', parts: [{ text: systemPrompt }] },
       { role: 'user', parts: [{ text: shotsContext }] }

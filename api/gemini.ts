@@ -173,7 +173,7 @@ async function analyzeStructure(ai: GoogleGenAI, payload: any) {
   `;
 
   const response = await ai.models.generateContent({
-    model: "gemini-1.5-flash",
+    model: "gemini-2.0-flash",
     contents: [
       { role: "user", parts: [{ text: systemPrompt }] },
       { role: "user", parts: [userContentPart] },
@@ -232,7 +232,7 @@ async function generateSceneShots(ai: GoogleGenAI, payload: any) {
   }
 
   const response = await ai.models.generateContent({
-    model: "gemini-1.5-flash",
+    model: "gemini-2.0-flash",
     contents: [
       { role: "user", parts: [{ text: systemPrompt }] },
       { role: "user", parts: [userContentPart] },
@@ -282,7 +282,7 @@ async function updateShotsWithNewCharacters(ai: GoogleGenAI, payload: any) {
   `;
 
   const response = await ai.models.generateContent({
-    model: "gemini-1.5-flash",
+    model: "gemini-2.0-flash",
     contents: [
       { role: "user", parts: [{ text: systemPrompt }] },
       { role: "user", parts: [{ text: shotsContext }] },
