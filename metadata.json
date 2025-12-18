@@ -1,0 +1,5 @@
+{
+  "name": "CineBreakdown",
+  "description": "Intelligent script breakdown and analysis tool using Gemini Flash for high-speed, low-cost processing of full scripts without chunking.",
+  "requestFramePermissions": []
+}
