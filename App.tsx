@@ -217,13 +217,21 @@ const App: React.FC = () => {
     setErrorMsg('');
 
     try {
-      const data = await analyzeStructure(payload, apiKey);
+      let data: BreakdownResult;
+      
+      // Usa o serviço correto baseado no provider
+      if (aiProvider === 'gemini') {
+        data = await analyzeStructure(payload, apiKey);
+      } else {
+        // Groq ou OpenRouter - usa o serviço gratuito
+        data = await analyzeStructureFree(payload.data, { provider: aiProvider, apiKey });
+      }
+      
       setResult(data);
       setStatus(AppStatus.SUCCESS);
       setActiveSection('SCENES'); // Auto-switch to breakdown
     } catch (err: any) {
       console.error("Erro na análise:", err);
-      // Captura a mensagem de erro real para exibir ao usuário
       const errorMessage = err?.message || err?.toString() || "Erro desconhecido";
       setErrorMsg(`Falha na análise: ${errorMessage}`);
       setStatus(AppStatus.ERROR);
