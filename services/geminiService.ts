@@ -120,7 +120,7 @@ const callServerlessApi = async (action: string, payload: any, apiKey: string) =
 
 // STAGE 1: Fast Structure Analysis
 export const analyzeStructure = async (input: InputFile, apiKey: string): Promise<BreakdownResult> => {
-  if (!apiKey) throw new Error("API Key is required");
+  if (!apiKey) throw new Error("API Key não fornecida. Por favor, insira sua chave do Google Gemini.");
 
   // Em produção, usa a API serverless; em desenvolvimento, chama diretamente
   if (isProduction()) {
@@ -128,7 +128,12 @@ export const analyzeStructure = async (input: InputFile, apiKey: string): Promis
   }
 
   // Desenvolvimento local - chamada direta
-  const ai = new GoogleGenAI({ apiKey });
+  let ai;
+  try {
+    ai = new GoogleGenAI({ apiKey });
+  } catch (e: any) {
+    throw new Error(`Erro ao inicializar API: ${e.message || 'Verifique se a API Key está correta'}`);
+  }
   
   const systemPrompt = `
     Atue como um experiente 1º Assistente de Direção (AD) e Diretor de Arte Brasileiro.

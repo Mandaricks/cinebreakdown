@@ -207,9 +207,11 @@ const App: React.FC = () => {
       setResult(data);
       setStatus(AppStatus.SUCCESS);
       setActiveSection('SCENES'); // Auto-switch to breakdown
-    } catch (err) {
-      console.error(err);
-      setErrorMsg("Falha na análise inicial. Verifique sua API Key.");
+    } catch (err: any) {
+      console.error("Erro na análise:", err);
+      // Captura a mensagem de erro real para exibir ao usuário
+      const errorMessage = err?.message || err?.toString() || "Erro desconhecido";
+      setErrorMsg(`Falha na análise: ${errorMessage}`);
       setStatus(AppStatus.ERROR);
     }
   };
